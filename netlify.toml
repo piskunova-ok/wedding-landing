@@ -1,0 +1,46 @@
+# Netlify: статический сайт + serverless-функция RSVP (netlify/functions/rsvp.js).
+# Backend-эндпоинт после деплоя: /.netlify/functions/rsvp
+# Обязательные env-переменные (Site settings → Environment variables):
+#   SUPABASE_URL, SUPABASE_SERVICE_KEY, ADMIN_SECRET
+# Необязательные: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RSVP_NOTIFICATION_EMAIL
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# --- Приватное: не отдавать служебные файлы и заявки наружу ---
+[[redirects]]
+  from = "/data/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/server.js"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/supabase.sql"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/.env*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# --- Кэш фото на сутки (при замене файла с тем же именем подхватится за день) ---
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

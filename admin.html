@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ответы гостей — Анна &amp; Михаил</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--milk:#FAF7F0;--cream:#F3EDE2;--beige:#E8DDC9;--linen:#D9CFC0;--olive:#7A7E5A;--sage:#A8B39A;--brown:#6B4E3E;--terra:#C48A6B;--ink:#4A3F34;--muted:#8A7D6B}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--milk);color:var(--ink);line-height:1.6;padding:32px 20px 60px}
+.wrap{max-width:960px;margin:0 auto}
+h1{font-family:'Cormorant Garamond',serif;font-size:38px;color:var(--brown);margin-bottom:4px}
+.sub{color:var(--muted);margin-bottom:28px}
+.card{background:#fff;border:1px solid var(--beige);border-radius:16px;padding:28px;box-shadow:0 12px 40px rgba(107,78,62,.1);margin-bottom:24px}
+.login{display:flex;gap:12px;flex-wrap:wrap}
+input{flex:1;min-width:220px;border:1px solid var(--linen);border-radius:12px;background:var(--milk);padding:14px 16px;font:400 16px 'Manrope',sans-serif;color:var(--ink)}
+input:focus{outline:none;border-color:var(--terra);box-shadow:0 0 0 3px rgba(196,138,107,.18)}
+button{background:var(--brown);color:var(--milk);border:1px solid var(--brown);padding:14px 28px;border-radius:999px;font:600 13px 'Manrope',sans-serif;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:.3s}
+button:hover{background:var(--terra);border-color:var(--terra)}
+button.ghost{background:transparent;color:var(--brown)}
+button.ghost:hover{background:var(--brown);color:var(--milk)}
+button:disabled{opacity:.6;cursor:wait}
+.err{background:#FBEDEC;color:#9C3D2E;border:1px solid #EFC5BC;border-radius:12px;padding:12px 16px;margin-top:16px;font-size:15px}
+.err[hidden]{display:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat{background:#fff;border:1px solid var(--beige);border-radius:14px;padding:18px;text-align:center}
+.stat b{font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--brown);display:block;line-height:1.1}
+.stat.yes b{color:var(--olive)}
+.stat span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:15px}
+th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--cream);vertical-align:top}
+th{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);background:var(--cream)}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.badge.yes{background:#E9EFE3;color:#5A6B47}
+.badge.no{background:#F3E4DE;color:#9C5B43}
+.dim{color:var(--muted);font-size:13px;white-space:nowrap}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+#results[hidden]{display:none}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}table{font-size:14px}th:nth-child(1),td:nth-child(1){display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ответы гостей</h1>
+  <p class="sub">Анна &amp; Михаил · свадьба 24 сентября 2026</p>
+
+  <div class="card" id="loginCard">
+    <div class="login">
+      <input type="password" id="key" placeholder="Пароль для просмотра" autocomplete="off">
+      <button id="showBtn">Показать ответы</button>
+    </div>
+    <p class="err" id="loginErr" hidden></p>
+  </div>
+
+  <div id="results" hidden>
+    <div class="stats">
+      <div class="stat"><b id="stTotal">0</b><span>всего ответов</span></div>
+      <div class="stat yes"><b id="stYes">0</b><span>придут</span></div>
+      <div class="stat"><b id="stNo">0</b><span>не смогут</span></div>
+      <div class="stat"><b id="stGuests">0</b><span>гостей придёт</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="ghost" id="refreshBtn">Обновить</button>
+      <button class="ghost" id="csvBtn">Скачать CSV</button>
+    </div>
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table>
+        <thead><tr><th>Дата</th><th>Имя</th><th>Ответ</th><th>Гостей</th><th>Меню</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var keyInput = document.getElementById('key');
+  var showBtn = document.getElementById('showBtn');
+  var loginErr = document.getElementById('loginErr');
+  var results = document.getElementById('results');
+  var rows = document.getElementById('rows');
+  var lastData = null;
+
+  keyInput.value = sessionStorage.getItem('rsvp_key') || '';
+  if (keyInput.value) load();
+
+  showBtn.addEventListener('click', load);
+  keyInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') load(); });
+  document.getElementById('refreshBtn').addEventListener('click', load);
+  document.getElementById('csvBtn').addEventListener('click', downloadCsv);
+
+  function fmtDate(iso) {
+    try {
+      var d = new Date(iso);
+      var p = function (n) { return String(n).padStart(2, '0'); };
+      return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    } catch (e) { return iso || ''; }
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  var API_URLS = ['/api/rsvp', '/.netlify/functions/rsvp'];
+
+  function getRsvp(key) {
+    function attempt(i) {
+      if (i >= API_URLS.length) return Promise.reject(new Error('all-failed'));
+      return fetch(API_URLS[i] + '?key=' + encodeURIComponent(key))
+        .then(function (r) {
+          return r.json().catch(function () { return null; })
+            .then(function (d) {
+              if (!r.ok && d === null) return attempt(i + 1);
+              return { ok: r.ok, d: d };
+            });
+        })
+        .catch(function () { return attempt(i + 1); });
+    }
+    return attempt(0);
+  }
+
+  function load() {
+    var key = keyInput.value.trim();
+    if (!key) { err('Введите пароль.'); return; }
+    loginErr.hidden = true;
+    showBtn.disabled = true;
+    showBtn.textContent = 'Загрузка…';
+    getRsvp(key)
+      .then(function (res) {
+        showBtn.disabled = false;
+        showBtn.textContent = 'Показать ответы';
+        if (!res.ok || !res.d.success) { err((res.d && res.d.message) || 'Не удалось загрузить.'); return; }
+        sessionStorage.setItem('rsvp_key', key);
+        render(res.d);
+      })
+      .catch(function () {
+        showBtn.disabled = false;
+        showBtn.textContent = 'Показать ответы';
+        err('Нет соединения с сервером.');
+      });
+  }
+
+  function err(m) { loginErr.textContent = m; loginErr.hidden = false; }
+
+  function render(d) {
+    lastData = d;
+    document.getElementById('stTotal').textContent = d.total;
+    document.getElementById('stYes').textContent = d.yesCount;
+    document.getElementById('stNo').textContent = d.noCount;
+    document.getElementById('stGuests').textContent = d.guestsTotal;
+    if (!d.items.length) {
+      rows.innerHTML = '<tr><td colspan="5" class="empty">Пока нет ни одного ответа</td></tr>';
+    } else {
+      rows.innerHTML = d.items.map(function (i) {
+        var badge = i.attendance === 'yes'
+          ? '<span class="badge yes">Придёт ❤️</span>'
+          : '<span class="badge no">Не сможет</span>';
+        return '<tr><td class="dim">' + esc(fmtDate(i.created_at)) + '</td><td><b>' + esc(i.name) + '</b></td><td>' +
+          badge + '</td><td>' + esc(i.guests) + '</td><td>' + esc(i.menu_comment || '—') + '</td></tr>';
+      }).join('');
+    }
+    results.hidden = false;
+  }
+
+  function downloadCsv() {
+    if (!lastData || !lastData.items.length) return;
+    var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var lines = ['Дата;Имя;Ответ;Гостей;Пожелания по меню'];
+    lastData.items.forEach(function (i) {
+      lines.push([fmtDate(i.created_at), i.name, i.attendance === 'yes' ? 'Придёт' : 'Не сможет', i.guests, i.menu_comment || ''].map(q).join(';'));
+    });
+    var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'rsvp-ответы.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+})();
+</script>
+</body>
+</html>

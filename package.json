@@ -1,0 +1,14 @@
+{
+  "name": "anna-mikhail-wedding",
+  "version": "1.0.0",
+  "description": "Лендинг-приглашение на свадьбу «Анна & Михаил» — тёплая осенняя LoveStory",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
